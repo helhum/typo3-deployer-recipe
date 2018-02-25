@@ -4,7 +4,7 @@ namespace Deployer;
 use Deployer\Exception\ConfigurationException;
 
 require 'recipe/common.php';
-require __DIR__ . '/rsync.php';
+require 'recipe/rsync.php';
 
 set('source_path', function () {
     $sourcePath = '{{build_path}}/current';

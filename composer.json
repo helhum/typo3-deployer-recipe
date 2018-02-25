@@ -4,7 +4,7 @@
     "require": {
         "deployer/deployer": "^6.0",
         "deployer/recipes": "^6.0",
-        "symfony/yaml": "^4.0",
+        "symfony/yaml": "^3.0 || ^4.0",
         "helhum/config-loader": "^0.7.0"
     },
     "license": "GPL-2.0-or-later",
@@ -13,5 +13,10 @@
             "name": "Helmut Hummel",
             "email": "info@helhum.io"
         }
-    ]
+    ],
+    "autoload": {
+        "files": [
+            "autoload.php"
+        ]
+    }
 }
