@@ -1,0 +1,17 @@
+{
+    "name": "helhum/typo3-deployer-recipe",
+    "description": "Deployer recipe for TYPO3 deployment using deployer",
+    "require": {
+        "deployer/deployer": "^6.0",
+        "deployer/recipes": "^6.0",
+        "symfony/yaml": "^4.0",
+        "helhum/config-loader": "^0.7.0"
+    },
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Helmut Hummel",
+            "email": "info@helhum.io"
+        }
+    ]
+}
