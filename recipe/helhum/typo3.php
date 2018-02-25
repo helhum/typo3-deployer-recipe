@@ -6,6 +6,7 @@ use Deployer\Exception\ConfigurationException;
 require 'recipe/common.php';
 require 'recipe/rsync.php';
 
+// Determine the source path which will be rsynced to the server
 set('source_path', function () {
     $sourcePath = '{{build_path}}/current';
     if (!has('build_path') && !Deployer::hasDefault('build_path')) {
@@ -18,6 +19,7 @@ set('source_path', function () {
 
 });
 
+// Fetch composer.json and store it in array for later use
 set('composer_config', function () {
     $composerJsonPath = parse('{{source_path}}/composer.json');
     if (!file_exists($composerJsonPath)) {
@@ -27,6 +29,7 @@ set('composer_config', function () {
     return \json_decode(\file_get_contents($composerJsonPath), true);
 });
 
+// Extract bin-dir from composer config
 set('composer_config/bin-dir', function() {
     $binDir = '{{release_path}}/vendor/bin';
     $composerConfig = get('composer_config');
@@ -36,6 +39,7 @@ set('composer_config/bin-dir', function() {
     return $binDir;
 });
 
+// Extract TYPO3 root dir from composer config
 set('typo3/root_dir', function () {
     // If no config is provided, we assume the root dir to be the release path
     $typo3RootDir = '.';
@@ -49,6 +53,7 @@ set('typo3/root_dir', function () {
     return $typo3RootDir;
 });
 
+// Extract TYPO3 public directory from composer config
 set('typo3/public_dir', function () {
     $composerConfig = get('composer_config');
     if (!isset($composerConfig['extra']['typo3/cms']['web-dir'])) {
@@ -58,7 +63,7 @@ set('typo3/public_dir', function () {
     return $composerConfig['extra']['typo3/cms']['web-dir'];
 });
 
-/**
+/*
  * Local build and rsync strategy
  */
 set('build_tasks', []);
@@ -123,6 +128,7 @@ add('rsync', [
         '+ /conf/***',
         '+ /packages/***',
         '- /{{typo3/root_dir}}/fileadmin',
+        '- /{{typo3/root_dir}}/typo3temp',
         '- /{{typo3/root_dir}}/uploads',
         '+ /{{typo3/root_dir}}/***',
         '+ /{{typo3/public_dir}}/***',
@@ -139,7 +145,7 @@ add('rsync', [
 set('rsync_src', '{{source_path}}');
 set('rsync_dest','{{release_path}}');
 
-/**
+/*
  * Main deploy task
  */
 task('deploy', [
@@ -155,17 +161,20 @@ before('transfer', 'deploy:lock');
 after('release', 'deploy:unlock');
 after('deploy:failed', 'deploy:unlock');
 
-/**
+/*
  * Global config
  */
+// Disallow statistics
 set('allow_anonymous_stats', false);
 
-/**
+/*
  * TYPO3 Specific config
  */
 set('shared_dirs', [
     '{{typo3/root_dir}}/fileadmin',
     '{{typo3/root_dir}}/uploads',
+    '{{typo3/root_dir}}/typo3temp/assets',
+    '{{typo3/root_dir}}/typo3temp/var/locks',
 ]);
 
 set('shared_files',
@@ -173,3 +182,21 @@ set('shared_files',
         'conf/host.yml',
     ]
 );
+
+// Writeable directories
+set('writable_dirs', [
+    '{{typo3/root_dir}}/typo3temp/var/Cache',
+    // These folders do not need to be made writeable on each deploy
+    // but it is useful to make them writable on first deploy, so we keep them here
+    '{{typo3/root_dir}}/fileadmin',
+    '{{typo3/root_dir}}/uploads',
+    '{{typo3/root_dir}}/typo3temp/assets',
+    '{{typo3/root_dir}}/typo3temp/var/locks',
+]);
+// These are server specific and should be set in the main deployment description
+// See https://deployer.org/docs/flow#deploy:writable
+//after('deploy:shared', 'deploy:writable');
+//set('writable_mode', 'chmod');
+//set('writable_chmod_recursive', true);
+//set('writable_use_sudo', false);
+//set('writable_chmod_mode', 'g+w');
