@@ -122,25 +122,27 @@ task('deploy:copy_dirs')->setPrivate();
 task('deploy:clear_paths')->setPrivate();
 
 add('rsync', [
-    'filter' => [
-        '- */.DS_Store',
-        '- */.git',
-        '+ /conf/***',
-        '+ /packages/***',
-        '- /{{typo3/root_dir}}/fileadmin',
-        '- /{{typo3/root_dir}}/typo3temp',
-        '- /{{typo3/root_dir}}/uploads',
-        '+ /{{typo3/root_dir}}/***',
-        '+ /{{typo3/public_dir}}/***',
-        '+ /vendor/***',
-        '- /var/log/*.log',
-        '+ /var/***',
-        '+ /composer.*',
-        '- *',
+    'exclude' => [
+        '.DS_Store',
+        '.gitignore',
+        '/.env',
+        '/{{typo3/root_dir}}/fileadmin',
+        '/{{typo3/root_dir}}/typo3temp',
+        '/{{typo3/root_dir}}/uploads',
+        '/var/log',
     ],
-    'flags'        => 'r',
-    'options'      => ['times','perms','links','delete','delete-excluded',],
-    'timeout'      => 360,
+    'include' => [
+        '/var/log/.gitkeep',
+    ],
+    'flags' => 'r',
+    'options' => [
+        'times',
+        'perms',
+        'links',
+        'delete',
+        'delete-excluded',
+    ],
+    'timeout' => 360,
 ]);
 set('rsync_src', '{{source_path}}');
 set('rsync_dest','{{release_path}}');
