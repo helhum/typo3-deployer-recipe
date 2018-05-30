@@ -6,6 +6,14 @@ use Deployer\Exception\ConfigurationException;
 require 'recipe/common.php';
 require 'recipe/rsync.php';
 
+// Unset env vars that affect build process
+unset($_ENV['TYPO3_CONTEXT'], $_ENV['TYPO3_PATH_ROOT'], $_ENV['TYPO3_PATH_WEB'], $_ENV['TYPO3_PATH_COMPOSER_ROOT'], $_ENV['TYPO3_PATH_APP']);
+putenv('TYPO3_CONTEXT');
+putenv('TYPO3_PATH_ROOT');
+putenv('TYPO3_PATH_WEB');
+putenv('TYPO3_PATH_COMPOSER_ROOT');
+putenv('TYPO3_PATH_APP');
+
 // Determine the source path which will be rsynced to the server
 set('source_path', function () {
     $sourcePath = '{{build_path}}/current';
