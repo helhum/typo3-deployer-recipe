@@ -2,6 +2,7 @@
     "name": "helhum/typo3-deployer-recipe",
     "description": "Deployer recipe for TYPO3 deployment using deployer",
     "require": {
+        "php": ">=7.0.0",
         "deployer/deployer": "^6.1",
         "deployer/recipes": "^6.0",
         "symfony/yaml": "^3.0 || ^4.0",
