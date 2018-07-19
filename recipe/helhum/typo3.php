@@ -140,6 +140,7 @@ add('rsync', [
         '/var/log',
     ],
     'include' => [
+        '/.htaccess',
         '/var/log/.gitkeep',
     ],
     'flags' => 'r',
