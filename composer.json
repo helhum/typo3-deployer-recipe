@@ -5,7 +5,7 @@
         "deployer/deployer": "^6.1",
         "deployer/recipes": "^6.0",
         "symfony/yaml": "^3.0 || ^4.0",
-        "helhum/config-loader": "^0.8.0"
+        "helhum/config-loader": "^0.8 || ^0.9"
     },
     "license": "GPL-2.0-or-later",
     "authors": [
