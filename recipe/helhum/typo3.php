@@ -139,9 +139,6 @@ add('rsync', [
         '/{{typo3/root_dir}}/uploads',
         '/var/log',
     ],
-    'include' => [
-        '/var/log/.gitkeep',
-    ],
     'flags' => 'r',
     'options' => [
         'times',
