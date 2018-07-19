@@ -178,13 +178,14 @@ after('deploy:failed', 'deploy:unlock');
 set('allow_anonymous_stats', false);
 
 /*
- * TYPO3 Specific config
+ * TYPO3-specific config
  */
 set('shared_dirs', [
     '{{typo3/root_dir}}/fileadmin',
     '{{typo3/root_dir}}/uploads',
     '{{typo3/root_dir}}/typo3temp/assets',
     '{{typo3/root_dir}}/typo3temp/var/locks',
+    'var/log',
 ]);
 
 set('shared_files',
