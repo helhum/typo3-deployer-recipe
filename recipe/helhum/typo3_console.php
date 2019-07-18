@@ -13,14 +13,14 @@ set('bin/typo3cms', function () {
     }
     return null;
 });
-function runConsole($command, array $arguments = []) {
+function runConsole($command, array $arguments = [], array $options = []) {
     if (get('bin/typo3cms') === null) {
         output()->writeln(sprintf('<comment>Could not detect TYPO3 Console binary, skipping "%s"</comment>', $command));
         output()->writeln('<comment>Consider defining the path as "bin/typo3cms" within your Deployer configuration.</comment>');
         return '';
     }
     array_unshift($arguments, $command);
-    return run('{{bin/typo3cms}} ' . implode(' ', array_map('escapeshellarg', $arguments)));
+    return run('{{bin/typo3cms}} ' . implode(' ', array_map('escapeshellarg', $arguments)), $options);
 }
 
 /**
