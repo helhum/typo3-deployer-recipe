@@ -2,22 +2,15 @@
 namespace Deployer;
 
 use Deployer\Exception\ConfigurationException;
+use Deployer\Task\Context;
 
 require 'recipe/common.php';
-require 'recipe/rsync.php';
-
-// Unset env vars that affect build process
-unset($_ENV['TYPO3_CONTEXT'], $_ENV['TYPO3_PATH_ROOT'], $_ENV['TYPO3_PATH_WEB'], $_ENV['TYPO3_PATH_COMPOSER_ROOT'], $_ENV['TYPO3_PATH_APP']);
-putenv('TYPO3_CONTEXT');
-putenv('TYPO3_PATH_ROOT');
-putenv('TYPO3_PATH_WEB');
-putenv('TYPO3_PATH_COMPOSER_ROOT');
-putenv('TYPO3_PATH_APP');
+require 'contrib/rsync.php';
 
 // Determine the source path which will be rsynced to the server
 set('source_path', function () {
     $sourcePath = '{{build_path}}/current';
-    if (!has('build_path') && !Deployer::hasDefault('build_path')) {
+    if (!has('build_path')) {
         if (!file_exists(\getcwd() . '/deploy.php')) {
             throw new ConfigurationException('Could not determine path to deployment source directory ("source_path")', 1512317992);
         }
@@ -26,6 +19,8 @@ set('source_path', function () {
     return $sourcePath;
 
 });
+
+set('composer_options', '--verbose --prefer-dist --no-progress --no-interaction --no-dev --classmap-authoritative');
 
 // Fetch composer.json and store it in array for later use
 set('composer_config', function () {
@@ -47,61 +42,38 @@ set('composer_config/bin-dir', function() {
     return $binDir;
 });
 
-// Extract TYPO3 root dir from composer config
-set('typo3/root_dir', function () {
-    // If no config is provided, we assume the root dir to be the release path
-    $typo3RootDir = '.';
-    $composerConfig = get('composer_config');
-    if (isset($composerConfig['extra']['typo3/cms']['web-dir'])) {
-        $typo3RootDir = $composerConfig['extra']['typo3/cms']['web-dir'];
-    }
-    if (isset($composerConfig['extra']['typo3/cms']['root-dir'])) {
-        $typo3RootDir = $composerConfig['extra']['typo3/cms']['root-dir'];
-    }
-    return $typo3RootDir;
-});
-
 // Extract TYPO3 public directory from composer config
 set('typo3/public_dir', function () {
     $composerConfig = get('composer_config');
     if (!isset($composerConfig['extra']['typo3/cms']['web-dir'])) {
-        // If no config is provided, we assume the web dir to be the release path
-        return '.';
+        // If no config is provided, we assume the web dir to be "public" folder in release path
+        return 'public';
     }
     return $composerConfig['extra']['typo3/cms']['web-dir'];
 });
+
+task('build:composer', function () {
+    set('deploy_path', '{{build_path}}');
+    runLocally('cd {{release_path}} && {{bin/composer}} build');
+})->hidden();
 
 /*
  * Local build and rsync strategy
  */
 set('build_tasks', []);
-task('build', function () {
-    if (!has('build_path') && !Deployer::hasDefault('build_path')) {
+task('deploy:build:local', function () {
+    if (!has('build_path')) {
         // No build path defined. Assuming source path to be the current directory, skipping build
         return;
     }
-    // This code is copied from TaskCommand, as it seems to be the only option currently to get the target hosts
-    $stage = input()->hasArgument('stage') ? input()->getArgument('stage') : null;
-    $roles = input()->getOption('roles');
-    $hosts = input()->getOption('hosts');
-    if (!empty($hosts)) {
-        $hosts = Deployer::get()->hostSelector->getByHostnames($hosts);
-    } elseif (!empty($roles)) {
-        $hosts = Deployer::get()->hostSelector->getByRoles($roles);
-    } else {
-        $hosts = Deployer::get()->hostSelector->getHosts($stage);
-    }
-    // Just select one host under the assumption that it does not make sense
-    // to deploy different branches for the same hosts selection
-    $hostBranch = current($hosts)->getConfig()->get('branch');
-    $defaultBranch = get('branch');
-    // Only change the branch, if we have differences
-    if ($defaultBranch !== $hostBranch) {
-        set('branch', $hostBranch);
+    Context::push(new Context(localhost()));
+    $composerConfig = get('composer_config');
+    if (isset($composerConfig['scripts']['build'])) {
+        add('build_tasks', ['build:composer']);
     }
     set('deploy_path', '{{build_path}}');
     set('keep_releases', 1);
-    invoke('deploy:prepare');
+    invoke('deploy:setup');
     invoke('deploy:release');
     invoke('deploy:update_code');
     invoke('deploy:vendors');
@@ -109,34 +81,36 @@ task('build', function () {
         invoke($task);
     }
     invoke('deploy:symlink');
-    invoke('cleanup');
+    invoke('deploy:cleanup');
+    Context::pop();
 
-})->local()->desc('Build project')->setPrivate();
+})->desc('Build project')->hidden();
 
-task('transfer',  [
+task('deploy:transfer',  [
     'deploy:release',
     'rsync:warmup',
     'rsync',
     'deploy:shared',
-])->desc('Transfer code to target hosts')->setPrivate();
+])->desc('Transfer code to target hosts')->hidden();
 
-task('release', [
+task('deploy:release-code', [
     'deploy:symlink',
-])->desc('Release code on target hosts')->setPrivate();
+])->desc('Release code on target hosts')->hidden();
 
-task('rsync')->setPrivate();
-task('rsync:warmup')->setPrivate();
-task('deploy:copy_dirs')->setPrivate();
-task('deploy:clear_paths')->setPrivate();
+task('rsync')->hidden();
+task('rsync:warmup')->hidden();
+task('deploy:copy_dirs')->hidden();
+task('deploy:clear_paths')->hidden();
 
 add('rsync', [
     'exclude' => [
         '.DS_Store',
         '.gitignore',
         '/.env',
-        '/{{typo3/root_dir}}/fileadmin',
-        '/{{typo3/root_dir}}/typo3temp',
-        '/{{typo3/root_dir}}/uploads',
+        '/{{typo3/public_dir}}/fileadmin',
+        '/{{typo3/public_dir}}/typo3temp',
+        '/{{typo3/public_dir}}/uploads',
+        '/var/lock',
         '/var/log',
     ],
     'flags' => 'r',
@@ -157,15 +131,15 @@ set('rsync_dest','{{release_path}}');
  */
 task('deploy', [
     'deploy:info',
-    'deploy:prepare',
-    'build',
-    'transfer',
-    'release',
-    'cleanup',
+    'deploy:setup',
+    'deploy:build:local',
+    'deploy:transfer',
+    'deploy:release-code',
+    'deploy:cleanup',
 ])->desc('Deploy your project');
-after('deploy', 'success');
-before('transfer', 'deploy:lock');
-after('release', 'deploy:unlock');
+after('deploy', 'deploy:success');
+before('deploy:transfer', 'deploy:lock');
+after('deploy:release-code', 'deploy:unlock');
 after('deploy:failed', 'deploy:unlock');
 
 /*
@@ -178,28 +152,29 @@ set('allow_anonymous_stats', false);
  * TYPO3-specific config
  */
 set('shared_dirs', [
-    '{{typo3/root_dir}}/fileadmin',
-    '{{typo3/root_dir}}/uploads',
-    '{{typo3/root_dir}}/typo3temp/assets',
-    '{{typo3/root_dir}}/typo3temp/var/locks',
+    '{{typo3/public_dir}}/fileadmin',
+    '{{typo3/public_dir}}/uploads',
+    '{{typo3/public_dir}}/typo3temp/assets',
+    'var/lock',
     'var/log',
 ]);
 
 set('shared_files',
     [
-        'conf/host.yml',
+        'config/override.settings.yaml',
     ]
 );
 
 // Writeable directories
 set('writable_dirs', [
-    '{{typo3/root_dir}}/typo3temp/var/Cache',
     // These folders do not need to be made writeable on each deploy
     // but it is useful to make them writable on first deploy, so we keep them here
-    '{{typo3/root_dir}}/fileadmin',
-    '{{typo3/root_dir}}/uploads',
-    '{{typo3/root_dir}}/typo3temp/assets',
-    '{{typo3/root_dir}}/typo3temp/var/locks',
+    '{{typo3/public_dir}}/fileadmin',
+    '{{typo3/public_dir}}/uploads',
+    '{{typo3/public_dir}}/typo3temp/assets',
+    'var/cache',
+    'var/lock',
+    'var/log',
 ]);
 // These are server specific and should be set in the main deployment description
 // See https://deployer.org/docs/flow#deploy:writable
@@ -208,3 +183,6 @@ set('writable_dirs', [
 //set('writable_chmod_recursive', true);
 //set('writable_use_sudo', false);
 //set('writable_chmod_mode', 'g+w');
+
+require __DIR__ . '/typo3_console.php';
+require __DIR__ . '/utility/deploy_init.php';
