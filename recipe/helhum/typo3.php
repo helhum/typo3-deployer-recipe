@@ -106,6 +106,7 @@ add('rsync', [
     'exclude' => [
         '.DS_Store',
         '.gitignore',
+        '/.ddev',
         '/.env',
         '/{{typo3/public_dir}}/fileadmin',
         '/{{typo3/public_dir}}/typo3temp',
