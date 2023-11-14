@@ -92,6 +92,9 @@ task('deploy:init', function () use ($setArrayValue, $yamlOutput) {
         $yamlString
         EOY;
     }
+    if (!test('[ -d $(dirname {{environment_config_yaml_file}}) ]')) {
+        run('mkdir -p $(dirname {{environment_config_yaml_file}})');
+    }
     run(sprintf('echo %s > {{environment_config_yaml_file}}', escapeshellarg($yamlString)));
 });
 before('deploy:shared', 'deploy:init');
