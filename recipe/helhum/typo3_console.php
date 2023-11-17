@@ -36,6 +36,14 @@ task('typo3:flush:caches', function () {
     runConsole('cache:flush');
 })->desc('Flush caches');
 
+task('typo3:flush:page-cache', function () {
+    runConsole('cache:flush', ['--group=pages']);
+})->desc('Flush caches');
+
+task('typo3:warmup:caches', function () {
+    runConsole('cache:warmup');
+})->desc('Warmup caches');
+
 task('typo3:default:folders', function () {
     runConsole('install:fixfolderstructure');
 })->desc('Creates TYPO3 default folder structure');
@@ -53,6 +61,6 @@ task('typo3:setup:extensions', function () {
  */
 after('deploy:transfer', 'typo3:default:folders');
 after('deploy:transfer', 'typo3:update:databaseschema');
-after('deploy:transfer', 'typo3:flush:caches');
+after('deploy:transfer', 'typo3:warmup:caches');
 after('deploy:transfer', 'typo3:setup:extensions');
-after('deploy:release-code', 'typo3:flush:caches');
+after('deploy:release-code', 'typo3:flush:page-cache');
