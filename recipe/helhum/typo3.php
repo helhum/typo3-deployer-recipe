@@ -113,6 +113,8 @@ add('rsync', [
         '/{{typo3/public_dir}}/uploads',
         '/var/lock',
         '/var/log',
+        '/var/session',
+        '/var/spool',
     ],
     'flags' => 'r',
     'options' => [
@@ -158,6 +160,8 @@ set('shared_dirs', [
     '{{typo3/public_dir}}/typo3temp/assets',
     'var/lock',
     'var/log',
+    '/var/session',
+    '/var/spool',
 ]);
 
 set('shared_files',
