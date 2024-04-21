@@ -61,6 +61,7 @@ task('build:composer', function () {
  * Local build and rsync strategy
  */
 set('build_tasks', []);
+set('update_code_tasks', []);
 task('deploy:build:local', function () {
     if (!has('build_path')) {
         // No build path defined. Assuming source path to be the current directory, skipping build
@@ -76,6 +77,9 @@ task('deploy:build:local', function () {
     invoke('deploy:setup');
     invoke('deploy:release');
     invoke('deploy:update_code');
+    foreach (get('update_code_tasks') as $task) {
+        invoke($task);
+    }
     invoke('deploy:vendors');
     foreach (get('build_tasks') as $task) {
         invoke($task);
@@ -160,8 +164,8 @@ set('shared_dirs', [
     '{{typo3/public_dir}}/typo3temp/assets',
     'var/lock',
     'var/log',
-    '/var/session',
-    '/var/spool',
+    'var/session',
+    'var/spool',
 ]);
 
 set('shared_files',
