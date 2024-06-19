@@ -67,7 +67,9 @@ task('deploy:build:local', function () {
         // No build path defined. Assuming source path to be the current directory, skipping build
         return;
     }
+    $branch = get('branch');
     Context::push(new Context(localhost()));
+    set('branch', $branch);
     $composerConfig = get('composer_config');
     if (isset($composerConfig['scripts']['build'])) {
         add('build_tasks', ['build:composer']);
