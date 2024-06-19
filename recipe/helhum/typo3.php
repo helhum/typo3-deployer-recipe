@@ -68,6 +68,9 @@ task('deploy:build:local', function () {
         return;
     }
     $branch = get('branch');
+    if (input()->getOption('branch')) {
+        $branch = input()->getOption('branch');
+    }
     Context::push(new Context(localhost()));
     set('branch', $branch);
     $composerConfig = get('composer_config');
